@@ -1,0 +1,8 @@
+{
+  "name": "node_otapi",
+  "version": "0.0.0",
+  "description": "Node.js Addon for Open Transactions",
+  "main": "test.js",
+  "private": true,
+  "gypfile": true
+}
