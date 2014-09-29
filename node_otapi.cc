@@ -100,12 +100,8 @@ Handle<Value> StopOTAPI(const Arguments& args){
 
 
 
-Handle<Value> CreateNewNym(const Arguments& args){
+Handle<Value> CreateNym(const Arguments& args){
   HandleScope scope;
-
-  OTIdentifier nym_id("IirfVWfx09PmHAznlJUR93jvFZmSZ6Wh5fYHkNERxKj");
-  OTIdentifier server_id("xyzl2I9VFVJP7ujXqUfdyf4Eoj6tQl2sOKnXcs741TH");
-  OTIdentifier account_id("k5YaRDf1sJOpQzxmE2nTQJNczmi7GWtxwVmoBeKtlYO");
 
   if (args.Length() < 1) {
     ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected a Name")));
@@ -126,15 +122,93 @@ Handle<Value> CreateNewNym(const Arguments& args){
   bool success = OTAPI_Wrap::SetNym_Name(nymID, nymID, nymName);
   
   //If there is no issue, register the new Nym with the server
-  if(success){
-    OTAPI_Wrap::createUserAccount(mainServerID, nymID);    
+  if(success){    
+    OTAPI_Wrap::getRequest(mainServerID, nymID);
+    OTAPI_Wrap::createUserAccount(mainServerID, nymID);
     return scope.Close(v8::String::New(nymID.c_str()));
   }else{
     return scope.Close(String::New(""));
   }
 }
 
+Handle<Value> DeleteNym(const Arguments& args){
+  HandleScope scope;
 
+  if (args.Length() < 1) {
+    ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected a Nym ID")));
+    return scope.Close(False());
+  }
+
+  if (!args[0]->IsString()) {
+    ThrowException(Exception::TypeError(String::New("Expected a Nym ID")));
+    return scope.Close(False());
+  }
+
+  v8::String::Utf8Value utf8String(args[0]->ToString());
+  std::string nymID = std::string(*utf8String);
+  
+  //Delete the Nym from the server then remove it locally
+  OTAPI_Wrap::getRequest(mainServerID, nymID);
+  int32_t removeRemovalCode = OTAPI_Wrap::deleteUserAccount(mainServerID, nymID);  
+  if(removeRemovalCode > 0){
+    bool localRemovalSuccess = OTAPI_Wrap::Wallet_RemoveNym(nymID);
+    if(localRemovalSuccess){
+      return scope.Close(True());
+    }else{
+      return scope.Close(False());
+    }
+  }else{
+    return scope.Close(False());
+  }
+}
+
+
+
+
+Handle<Value> CreateAccount(const Arguments& args){
+  HandleScope scope;
+
+  if (args.Length() < 3) {
+    ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected an Account Name, Nym ID, and Asset ID")));
+    return scope.Close(String::New(""));
+  }
+
+  if (!args[0]->IsString()) {
+    ThrowException(Exception::TypeError(String::New("Expected an Account Name for the first parameter")));
+    return scope.Close(String::New(""));
+  }
+  
+  if (!args[1]->IsString()) {
+    ThrowException(Exception::TypeError(String::New("Expected a Nym ID for the second parameter")));
+    return scope.Close(String::New(""));
+  }
+
+  if (!args[2]->IsString()) {
+    ThrowException(Exception::TypeError(String::New("Expected a Asset ID for the third parameter")));
+    return scope.Close(String::New(""));
+  }
+
+  v8::String::Utf8Value utf8StringAccountName(args[0]->ToString());
+  std::string accountName = std::string(*utf8StringAccountName);
+  
+  v8::String::Utf8Value utf8StringNymID(args[1]->ToString());
+  std::string nymID = std::string(*utf8StringNymID);
+  
+  v8::String::Utf8Value utf8StringAssetID(args[2]->ToString());
+  std::string assetID = std::string(*utf8StringAssetID);
+  
+  //Create the Asset Account using the default Server ID, Nym ID, and Asset ID
+  OTAPI_Wrap::getRequest(mainServerID, nymID);
+  OT_ME madeEasy = OT_ME();
+  std::string serverResponse = madeEasy.create_asset_acct(mainServerID, nymID, assetID);
+  std::string accountID = OTAPI_Wrap::Message_GetNewAcctID(serverResponse);
+  OTAPI_Wrap::SetAccountWallet_Name(accountID, nymID, accountName);
+  
+  OTAPI_Wrap::getRequest(mainServerID, nymID);
+  madeEasy.accept_inbox_items(accountID, 0, "");
+  
+  return scope.Close(v8::String::New(accountID.c_str()));
+}
 
 Handle<Value> GetAccountBalance(const Arguments& args){
   HandleScope scope;
@@ -160,6 +234,33 @@ Handle<Value> GetAccountBalance(const Arguments& args){
   return scope.Close(Number::New(balance));
 }
 
+Handle<Value> DeleteAccount(const Arguments& args){
+  HandleScope scope;
+
+  if (args.Length() < 1) {
+    ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected an Account ID")));
+    return scope.Close(False());
+  }
+
+  if (!args[0]->IsString()) {
+    ThrowException(Exception::TypeError(String::New("Expected a Account ID")));
+    return scope.Close(False());
+  }
+
+  v8::String::Utf8Value utf8String(args[0]->ToString());
+  std::string accountID = std::string(*utf8String);
+  
+  //Delete the Account from the server
+  std::string nymID = OTAPI_Wrap::GetAccountWallet_NymID(accountID);
+  OTAPI_Wrap::getRequest(mainServerID, nymID);
+  int32_t returnValue = OTAPI_Wrap::deleteAssetAccount(mainServerID, nymID, accountID);  
+  
+  if(returnValue > 0){
+    return scope.Close(True());
+  }else{
+    return scope.Close(False());
+  }
+}
 
 
 
@@ -218,8 +319,6 @@ Handle<Value> GetNymIDList(const Arguments& args){
   // Return the value through Close.
   return scope.Close(array);
 }
-
-
 Handle<Value> GetNymNameList(const Arguments& args){
   // We will be creating temporary handles so we use a handle scope.
   HandleScope scope;
@@ -246,6 +345,30 @@ Handle<Value> GetNymNameList(const Arguments& args){
 }
 
 
+Handle<Value> GetAssetIDList(const Arguments& args){
+  // We will be creating temporary handles so we use a handle scope.
+  HandleScope scope;
+
+  //Determine how many assets are present
+  int32_t assetCount = OTAPI_Wrap::GetAssetTypeCount();
+
+  // Create a new empty array.
+  Handle<Array> array = Array::New(assetCount);
+
+  // Return an empty result if there was an error creating the array.
+  if (array.IsEmpty())
+    return Handle<Array>();
+
+  // Add all the asset names
+  for(int32_t i = 0; i < assetCount; i++){
+    std::string assetID = OTAPI_Wrap::GetAssetType_ID(i);
+
+    array->Set(i, String::New(assetID.c_str()));
+  }
+
+  // Return the value through Close.
+  return scope.Close(array);
+}
 Handle<Value> GetAssetNameList(const Arguments& args){
   // We will be creating temporary handles so we use a handle scope.
   HandleScope scope;
@@ -527,13 +650,21 @@ void init(Handle<Object> exports) {
       FunctionTemplate::New(GetNymIDList)->GetFunction());
   exports->Set(String::NewSymbol("getNymNameList"),
       FunctionTemplate::New(GetNymNameList)->GetFunction());
+  exports->Set(String::NewSymbol("getAssetIDList"),
+      FunctionTemplate::New(GetAssetIDList)->GetFunction());
   exports->Set(String::NewSymbol("getAssetNameList"),
       FunctionTemplate::New(GetAssetNameList)->GetFunction());
   
   
   
-  exports->Set(String::NewSymbol("createNewNym"),
-      FunctionTemplate::New(CreateNewNym)->GetFunction());
+  exports->Set(String::NewSymbol("createNym"),
+      FunctionTemplate::New(CreateNym)->GetFunction());
+  exports->Set(String::NewSymbol("deleteNym"),
+      FunctionTemplate::New(DeleteNym)->GetFunction());
+  exports->Set(String::NewSymbol("createAccount"),
+      FunctionTemplate::New(CreateAccount)->GetFunction()); 
+  exports->Set(String::NewSymbol("deleteAccount"),
+      FunctionTemplate::New(DeleteAccount)->GetFunction());   
   exports->Set(String::NewSymbol("getAccountBalance"),
       FunctionTemplate::New(GetAccountBalance)->GetFunction());
   

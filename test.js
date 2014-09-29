@@ -24,44 +24,107 @@ console.log("App listening on port 8080");
 
 
 
-otapi.mainUserID = 'ya1AQQmaWnuntmDnoOjCmKpPXhmGuVAfkPwrgSc3nlf';
-otapi.mainServerID = 'y0ca6JVtYSZuj1etoABAsaNJsU2Kb35AjeQZyZ0YCCF';
 
 
-console.log(otapi.startOTAPI('ya1AQQmaWnuntmDnoOjCmKpPXhmGuVAfkPwrgSc3nlf', 'password'));
-console.log('issuer = ' + otapi.getAccountBalance('MtBJmjl6FXD51lnSAgENXwXh748BRe7j5TDd0vf8OXd'));
-console.log('comptroller = ' + otapi.getAccountBalance('oYeRsNAzcf0IcuqNEVtCdvW0fmt5F3FRucTJcygMcUd'));
-console.log(otapi.mainUserID);
-console.log(otapi.mainServerID);
-
-console.log('\n\n\n\n');
-console.log('ACCOUNT ID LIST');
-console.log(otapi.getAccountIDList());
-
-console.log('\n\n\n\n');
-console.log('NYM ID LIST');
-console.log(otapi.getNymIDList());
-
-console.log('\n\n\n\n');
-console.log('NYM NAME LIST');
-console.log(otapi.getNymNameList());
-
-console.log('\n\n\n\n');
-console.log('ASSET NAME LIST');
-console.log(otapi.getAssetNameList());
 
 
-console.log('\n\n\n\n');
-var newNymID = otapi.createNewNym('test mama jama');
-console.log(newNymID);
+
+
+
+
+function startup(){
+  console.log(otapi.startOTAPI('ya1AQQmaWnuntmDnoOjCmKpPXhmGuVAfkPwrgSc3nlf', 'password'));
+  console.log('issuer = ' + otapi.getAccountBalance('MtBJmjl6FXD51lnSAgENXwXh748BRe7j5TDd0vf8OXd'));
+  console.log('comptroller = ' + otapi.getAccountBalance('oYeRsNAzcf0IcuqNEVtCdvW0fmt5F3FRucTJcygMcUd'));
+  console.log(otapi.mainUserID);
+  console.log(otapi.mainServerID);
+}
+
+function listEverything(){
+  console.log('\n\n\n\n');
+  console.log('ACCOUNT ID LIST');
+  console.log(otapi.getAccountIDList());
+
+  console.log('\n\n\n\n');
+  console.log('NYM ID LIST');
+  console.log(otapi.getNymIDList());
+
+  console.log('\n\n\n\n');
+  console.log('NYM NAME LIST');
+  console.log(otapi.getNymNameList());
+
+  console.log('\n\n\n\n');
+  console.log('ASSET ID LIST');
+  allAssetID = otapi.getAssetIDList();
+  console.log(allAssetID);
+
+  console.log('\n\n\n\n');
+  console.log('ASSET NAME LIST');
+  console.log(otapi.getAssetNameList());
+}
+
+
+
+function createUserAndAccount(){
+  console.log('\n\n\n\n');
+  console.log('######## Trying to create a test user');
+  newNymID = otapi.createNym(username);
+  console.log('######## New test user = ' + newNymID);
+  console.log('######## Trying to create an Account');
+  newAccountID = otapi.createAccount(username + "'s hacker coins", newNymID, allAssetID[0]);
+  console.log('######## New account = ' + newAccountID);
+}
+
+function removeAccountAndUser(){
+  console.log('######## Trying to remove an Account');
+  var accountDeleteSuccess = otapi.deleteAccount(newAccountID);
+  console.log(((accountDeleteSuccess)?'######## Successfully removed the account':'######## Failed to remove the account'));
+  console.log('######## Trying to remove the test user');
+  var nymDeleteSuccess = otapi.deleteNym(newNymID);
+  console.log(((nymDeleteSuccess)?'######## Successfully removed the nym':'######## Failed to remove the nym'));
+}
 
 //console.log(otapi.transferAssets('k5YaRDf1sJOpQzxmE2nTQJNczmi7GWtxwVmoBeKtlYO', 'aa2Tsh213OUm3fUnRb3W0DKLbU5owDaGZNH5nI6ZmQW', 100, 'test transfer'));
 
 
+function shutdown(){
+  console.log('issuer = ' + otapi.getAccountBalance('MtBJmjl6FXD51lnSAgENXwXh748BRe7j5TDd0vf8OXd'));
+  console.log('comptroller = ' + otapi.getAccountBalance('oYeRsNAzcf0IcuqNEVtCdvW0fmt5F3FRucTJcygMcUd'));
+  console.log(otapi.stopOTAPI());
+}
 
-console.log('issuer = ' + otapi.getAccountBalance('MtBJmjl6FXD51lnSAgENXwXh748BRe7j5TDd0vf8OXd'));
-console.log('comptroller = ' + otapi.getAccountBalance('oYeRsNAzcf0IcuqNEVtCdvW0fmt5F3FRucTJcygMcUd'));
-console.log(otapi.stopOTAPI());
+function removeUserAndShutdown(){
+  removeAccountAndUser();
+  shutdown();
+}
+
+
+
+
+var allAssetID = [];
+var newNymID, newAccountID;
+var username = 'testuser10';
+otapi.mainUserID = 'ya1AQQmaWnuntmDnoOjCmKpPXhmGuVAfkPwrgSc3nlf';
+otapi.mainServerID = 'y0ca6JVtYSZuj1etoABAsaNJsU2Kb35AjeQZyZ0YCCF';
+
+startup();
+listEverything();
+createUserAndAccount();
+
+setTimeout(removeUserAndShutdown, 5000);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
