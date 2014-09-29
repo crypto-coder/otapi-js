@@ -1,5 +1,6 @@
 #include <string>
 #include <OTPassword.hpp>
+#include <OTCallback.hpp>
 
 #include <v8.h>
 

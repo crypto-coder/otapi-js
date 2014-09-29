@@ -9,6 +9,7 @@
 #include <OTAsymmetricKey.hpp>
 #include <OTIdentifier.hpp>
 #include <OTPassword.hpp>
+#include <OTCaller.hpp>
 #include <passwordCallback.hpp>
 
 
@@ -96,6 +97,45 @@ Handle<Value> StopOTAPI(const Arguments& args){
 }
 
 
+
+
+
+Handle<Value> CreateNewNym(const Arguments& args){
+  HandleScope scope;
+
+  OTIdentifier nym_id("IirfVWfx09PmHAznlJUR93jvFZmSZ6Wh5fYHkNERxKj");
+  OTIdentifier server_id("xyzl2I9VFVJP7ujXqUfdyf4Eoj6tQl2sOKnXcs741TH");
+  OTIdentifier account_id("k5YaRDf1sJOpQzxmE2nTQJNczmi7GWtxwVmoBeKtlYO");
+
+  if (args.Length() < 1) {
+    ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected a Name")));
+    return scope.Close(String::New(""));
+  }
+
+  if (!args[0]->IsString()) {
+    ThrowException(Exception::TypeError(String::New("Expected a Name")));
+    return scope.Close(String::New(""));
+  }
+
+  v8::String::Utf8Value utf8String(args[0]->ToString());
+  std::string nymName = std::string(*utf8String);
+  
+  //Create the Nym ID and set the name to the one provided
+  int32_t keySize = 1024;
+  std::string nymID = OTAPI_Wrap::CreateNym(keySize, "", "");
+  bool success = OTAPI_Wrap::SetNym_Name(nymID, nymID, nymName);
+  
+  //If there is no issue, register the new Nym with the server
+  if(success){
+    OTAPI_Wrap::createUserAccount(mainServerID, nymID);    
+    return scope.Close(v8::String::New(nymID.c_str()));
+  }else{
+    return scope.Close(String::New(""));
+  }
+}
+
+
+
 Handle<Value> GetAccountBalance(const Arguments& args){
   HandleScope scope;
 
@@ -121,7 +161,13 @@ Handle<Value> GetAccountBalance(const Arguments& args){
 }
 
 
-Handle<Value> GetAccountList(const Arguments& args){
+
+
+
+
+
+
+Handle<Value> GetAccountIDList(const Arguments& args){
   // We will be creating temporary handles so we use a handle scope.
   HandleScope scope;
 
@@ -139,7 +185,7 @@ Handle<Value> GetAccountList(const Arguments& args){
   for(int32_t i = 0; i < accountCount; i++){
     std::string accountID = OTAPI_Wrap::GetAccountWallet_ID(i);
 
-    std::cout << "AccountType = " << OTAPI_Wrap::GetAccountWallet_Type(accountID) << std::endl;
+    //std::cout << "AccountType = " << OTAPI_Wrap::GetAccountWallet_Type(accountID) << std::endl;
 
     array->Set(i, String::New(accountID.c_str()));
   }
@@ -147,6 +193,88 @@ Handle<Value> GetAccountList(const Arguments& args){
   // Return the value through Close.
   return scope.Close(array);
 }
+
+
+Handle<Value> GetNymIDList(const Arguments& args){
+  // We will be creating temporary handles so we use a handle scope.
+  HandleScope scope;
+
+  //Determine how many nyms are present
+  int32_t nymCount = OTAPI_Wrap::GetNymCount();
+
+  // Create a new empty array.
+  Handle<Array> array = Array::New(nymCount);
+
+  // Return an empty result if there was an error creating the array.
+  if (array.IsEmpty())
+    return Handle<Array>();
+
+  // Add all the nyms
+  for(int32_t i = 0; i < nymCount; i++){
+    std::string nymID = OTAPI_Wrap::GetNym_ID(i);
+    array->Set(i, String::New(nymID.c_str()));
+  }
+
+  // Return the value through Close.
+  return scope.Close(array);
+}
+
+
+Handle<Value> GetNymNameList(const Arguments& args){
+  // We will be creating temporary handles so we use a handle scope.
+  HandleScope scope;
+
+  //Determine how many nyms are present
+  int32_t nymCount = OTAPI_Wrap::GetNymCount();
+
+  // Create a new empty array.
+  Handle<Array> array = Array::New(nymCount);
+
+  // Return an empty result if there was an error creating the array.
+  if (array.IsEmpty())
+    return Handle<Array>();
+
+  // Add all the nyms
+  for(int32_t i = 0; i < nymCount; i++){
+    std::string nymID = OTAPI_Wrap::GetNym_ID(i);
+    std::string nymName = OTAPI_Wrap::GetNym_Name(nymID);
+    array->Set(i, String::New(nymName.c_str()));
+  }
+
+  // Return the value through Close.
+  return scope.Close(array);
+}
+
+
+Handle<Value> GetAssetNameList(const Arguments& args){
+  // We will be creating temporary handles so we use a handle scope.
+  HandleScope scope;
+
+  //Determine how many assets are present
+  int32_t assetCount = OTAPI_Wrap::GetAssetTypeCount();
+
+  // Create a new empty array.
+  Handle<Array> array = Array::New(assetCount);
+
+  // Return an empty result if there was an error creating the array.
+  if (array.IsEmpty())
+    return Handle<Array>();
+
+  // Add all the asset names
+  for(int32_t i = 0; i < assetCount; i++){
+    std::string assetID = OTAPI_Wrap::GetAssetType_ID(i);
+    std::string assetName = OTAPI_Wrap::GetAssetType_Name(assetID);
+
+    array->Set(i, String::New(assetName.c_str()));
+  }
+
+  // Return the value through Close.
+  return scope.Close(array);
+}
+
+
+
+
 
 
 
@@ -391,14 +519,34 @@ void init(Handle<Object> exports) {
       FunctionTemplate::New(StartOTAPI)->GetFunction());
   exports->Set(String::NewSymbol("stopOTAPI"),
       FunctionTemplate::New(StopOTAPI)->GetFunction());
+  
+  
+  exports->Set(String::NewSymbol("getAccountIDList"),
+      FunctionTemplate::New(GetAccountIDList)->GetFunction());
+  exports->Set(String::NewSymbol("getNymIDList"),
+      FunctionTemplate::New(GetNymIDList)->GetFunction());
+  exports->Set(String::NewSymbol("getNymNameList"),
+      FunctionTemplate::New(GetNymNameList)->GetFunction());
+  exports->Set(String::NewSymbol("getAssetNameList"),
+      FunctionTemplate::New(GetAssetNameList)->GetFunction());
+  
+  
+  
+  exports->Set(String::NewSymbol("createNewNym"),
+      FunctionTemplate::New(CreateNewNym)->GetFunction());
   exports->Set(String::NewSymbol("getAccountBalance"),
       FunctionTemplate::New(GetAccountBalance)->GetFunction());
-  exports->Set(String::NewSymbol("getAccountList"),
-      FunctionTemplate::New(GetAccountList)->GetFunction());
+  
+  
+  
+  
+  
   exports->Set(String::NewSymbol("transferAssets"),
       FunctionTemplate::New(TransferAssets)->GetFunction());
   exports->Set(String::NewSymbol("issueAssets"),
       FunctionTemplate::New(IssueAssets)->GetFunction());
+  
+  
   exports->SetAccessor(String::New("mainUserID"), GetUserID, SetUserID);
   exports->SetAccessor(String::New("mainServerID"), GetServerID, SetServerID);
 

@@ -24,18 +24,43 @@ console.log("App listening on port 8080");
 
 
 
+otapi.mainUserID = 'ya1AQQmaWnuntmDnoOjCmKpPXhmGuVAfkPwrgSc3nlf';
+otapi.mainServerID = 'y0ca6JVtYSZuj1etoABAsaNJsU2Kb35AjeQZyZ0YCCF';
+
+
+console.log(otapi.startOTAPI('ya1AQQmaWnuntmDnoOjCmKpPXhmGuVAfkPwrgSc3nlf', 'password'));
+console.log('issuer = ' + otapi.getAccountBalance('MtBJmjl6FXD51lnSAgENXwXh748BRe7j5TDd0vf8OXd'));
+console.log('comptroller = ' + otapi.getAccountBalance('oYeRsNAzcf0IcuqNEVtCdvW0fmt5F3FRucTJcygMcUd'));
+console.log(otapi.mainUserID);
+console.log(otapi.mainServerID);
+
+console.log('\n\n\n\n');
+console.log('ACCOUNT ID LIST');
+console.log(otapi.getAccountIDList());
+
+console.log('\n\n\n\n');
+console.log('NYM ID LIST');
+console.log(otapi.getNymIDList());
+
+console.log('\n\n\n\n');
+console.log('NYM NAME LIST');
+console.log(otapi.getNymNameList());
+
+console.log('\n\n\n\n');
+console.log('ASSET NAME LIST');
+console.log(otapi.getAssetNameList());
+
+
+console.log('\n\n\n\n');
+var newNymID = otapi.createNewNym('test mama jama');
+console.log(newNymID);
+
+//console.log(otapi.transferAssets('k5YaRDf1sJOpQzxmE2nTQJNczmi7GWtxwVmoBeKtlYO', 'aa2Tsh213OUm3fUnRb3W0DKLbU5owDaGZNH5nI6ZmQW', 100, 'test transfer'));
 
 
 
-console.log(otapi.startOTAPI('IirfVWfx09PmHAznlJUR93jvFZmSZ6Wh5fYHkNERxKj', 'password'));
-console.log('issuer = ' + otapi.getAccountBalance('k5YaRDf1sJOpQzxmE2nTQJNczmi7GWtxwVmoBeKtlYO'));
-console.log('comptroller = ' + otapi.getAccountBalance('aa2Tsh213OUm3fUnRb3W0DKLbU5owDaGZNH5nI6ZmQW'));
-//console.log(otapi.mainUserID);
-//console.log(otapi.mainServerID);
-//console.log(otapi.getAccountList());
-console.log(otapi.transferAssets('k5YaRDf1sJOpQzxmE2nTQJNczmi7GWtxwVmoBeKtlYO', 'aa2Tsh213OUm3fUnRb3W0DKLbU5owDaGZNH5nI6ZmQW', 100, 'test transfer'));
-console.log('issuer = ' + otapi.getAccountBalance('k5YaRDf1sJOpQzxmE2nTQJNczmi7GWtxwVmoBeKtlYO'));
-console.log('comptroller = ' + otapi.getAccountBalance('aa2Tsh213OUm3fUnRb3W0DKLbU5owDaGZNH5nI6ZmQW'));
+console.log('issuer = ' + otapi.getAccountBalance('MtBJmjl6FXD51lnSAgENXwXh748BRe7j5TDd0vf8OXd'));
+console.log('comptroller = ' + otapi.getAccountBalance('oYeRsNAzcf0IcuqNEVtCdvW0fmt5F3FRucTJcygMcUd'));
 console.log(otapi.stopOTAPI());
 
 
