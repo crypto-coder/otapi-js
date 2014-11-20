@@ -33,11 +33,11 @@ console.log("App listening on port 8080");
 
 
 function startup(){
-  console.log(otapi.startOTAPI('ya1AQQmaWnuntmDnoOjCmKpPXhmGuVAfkPwrgSc3nlf', 'password'));
-  console.log('issuer = ' + otapi.getAccountBalance('MtBJmjl6FXD51lnSAgENXwXh748BRe7j5TDd0vf8OXd'));
-  console.log('comptroller = ' + otapi.getAccountBalance('oYeRsNAzcf0IcuqNEVtCdvW0fmt5F3FRucTJcygMcUd'));
-  console.log(otapi.mainUserID);
-  console.log(otapi.mainServerID);
+  console.log(otapi.startOTAPI('password'));
+  //console.log('issuer = ' + otapi.getAccountBalance('MtBJmjl6FXD51lnSAgENXwXh748BRe7j5TDd0vf8OXd'));
+  //console.log('comptroller = ' + otapi.getAccountBalance('oYeRsNAzcf0IcuqNEVtCdvW0fmt5F3FRucTJcygMcUd'));
+  //console.log(otapi.mainUserID);
+  //console.log(otapi.mainServerID);
 }
 
 function listEverything(){
@@ -86,10 +86,49 @@ function removeAccountAndUser(){
 
 //console.log(otapi.transferAssets('k5YaRDf1sJOpQzxmE2nTQJNczmi7GWtxwVmoBeKtlYO', 'aa2Tsh213OUm3fUnRb3W0DKLbU5owDaGZNH5nI6ZmQW', 100, 'test transfer'));
 
+function createAndIssueNewAsset(newAssetName, tla, fraction){
+  console.log('######## Trying to load an XML contract template');
+  var xmldom = require('xmldom');
+  var fs = require('fs');
+  
+  var DOMParser = xmldom.DOMParser;
+  var DOMSerializer = xmldom.XMLSerializer;
+  
+  var fileData = fs.readFileSync('template.xml', 'ascii');
+  var doc = new DOMParser().parseFromString(fileData.substring(0, fileData.length),'text/xml');
+  
+  
+  console.log('######## Changing the name, tla, and fraction values in the contract = ' + newAssetName + ', ' + tla + ', ' + fraction);
+  var currencyNode = doc.documentElement.getElementsByTagName('currency')[0];
+  currencyNode.setAttribute('name', newAssetName);
+  currencyNode.setAttribute('tla', tla);
+  currencyNode.setAttribute('fraction', fraction);
+  var assetContract = new DOMSerializer().serializeToString(doc);
+    
+  console.log('######## Trying to create the asset from the XML');
+  var assetID = otapi.createNewAsset(otapi.mainUserID, assetContract);
+  console.log('######## ASSET ID : ' + assetID);
+  
+  console.log('######## Retrieving the signed contract');
+  var signedContract = otapi.getSignedAssetContract(assetID);
+  console.log(signedContract);
+  
+  console.log('######## Issuing the signed contract');
+  var issuerAccountID = otapi.issueAsset(otapi.mainUserID, assetID);
+  console.log(issuerAccountID);
+  
+  
+  
+  doc = null;
+  fileData = null;
+  fs = null;
+  xmldom = null;
+  DOMParser = null;
+  DOMSerializer = null;
+}
+
 
 function shutdown(){
-  console.log('issuer = ' + otapi.getAccountBalance('MtBJmjl6FXD51lnSAgENXwXh748BRe7j5TDd0vf8OXd'));
-  console.log('comptroller = ' + otapi.getAccountBalance('oYeRsNAzcf0IcuqNEVtCdvW0fmt5F3FRucTJcygMcUd'));
   console.log(otapi.stopOTAPI());
 }
 
@@ -108,10 +147,13 @@ otapi.mainUserID = 'ya1AQQmaWnuntmDnoOjCmKpPXhmGuVAfkPwrgSc3nlf';
 otapi.mainServerID = 'y0ca6JVtYSZuj1etoABAsaNJsU2Kb35AjeQZyZ0YCCF';
 
 startup();
-listEverything();
-createUserAndAccount();
+//var signedContract = otapi.getSignedAssetContract('oh4PYiMZKxbBX2CLz1cb5aCAjReCBll4xistOzfx6NC');
+//console.log(otapi.issueAsset(otapi.mainUserID, 'oh4PYiMZKxbBX2CLz1cb5aCAjReCBll4xistOzfx6NC'));
+//onsole.log(signedContract);
+//listEverything();
+//createAndIssueNewAsset('PURE Money', 'pre', 'mpre');
 
-setTimeout(removeUserAndShutdown, 5000);
+setTimeout(shutdown, 5000);
 
 
 
