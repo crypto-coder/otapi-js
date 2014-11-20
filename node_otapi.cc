@@ -46,26 +46,18 @@ Handle<Value> StartOTAPI(const Arguments& args) {
   HandleScope scope;
 
   //Validate the supplied arguments
-  if (args.Length() < 2) {
-    ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected a User ID and passphrase")));
+  if (args.Length() < 1) {
+    ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected a Passphrase")));
     return scope.Close(False());
   }
-
+  
   if (!args[0]->IsString()) {
-    ThrowException(Exception::TypeError(String::New("First parameter (User ID) is not in the correct format.")));
-    return scope.Close(False());
-  }
-
-  if (!args[1]->IsString()) {
-    ThrowException(Exception::TypeError(String::New("Second parameter (passphrase) is not in the correct format.")));
+    ThrowException(Exception::TypeError(String::New("First parameter (passphrase) is not in the correct format.")));
     return scope.Close(False());
   }
 
   //Convert the supplied arguments
-  v8::String::Utf8Value userIDUTF(args[0]->ToString());
-  mainUserID = std::string(*userIDUTF);
-
-  v8::String::Utf8Value passphraseUTF(args[1]->ToString());
+  v8::String::Utf8Value passphraseUTF(args[0]->ToString());
   std::string passphrase = std::string(*passphraseUTF);
 
   //Initialize the OTAPI library
@@ -407,7 +399,7 @@ Handle<Value> TransferAssets(const Arguments& args){
 
   //Make sure all the arguments have been supplied
   if (args.Length() < 3) {
-    ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected: From Account ID, To Account ID, Amount")));
+    ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected: From Account ID, To Account ID, Amount, Memo")));
     return scope.Close(False());
   }
 
@@ -429,6 +421,8 @@ Handle<Value> TransferAssets(const Arguments& args){
   //Extract the values supplied as arguments
   v8::String::Utf8Value fromAccountUTF(args[0]->ToString());
   std::string fromAccountID = std::string(*fromAccountUTF);
+  
+  std::string fromNymID = OTAPI_Wrap::GetAccountWallet_NymID(fromAccountID);  
 
   v8::String::Utf8Value toAccountUTF(args[1]->ToString());
   std::string toAccountID = std::string(*toAccountUTF);
@@ -441,10 +435,10 @@ Handle<Value> TransferAssets(const Arguments& args){
     memo = std::string(*memoUTF);
   }
 
-  std::cout << "Transfer parameters = " << fromAccountID << ", " << toAccountID << ", " << amount << ", " << memo << std::endl;
+  std::cout << "Transfer parameters = " << fromNymID << ", " << fromAccountID << ", " << toAccountID << ", " << amount << ", " << memo << std::endl;
 
   //Transfer the assets
-  OTAPI_Wrap::notarizeTransfer(mainServerID, mainUserID, fromAccountID, toAccountID, amount, memo);
+  OTAPI_Wrap::notarizeTransfer(mainServerID, fromNymID, fromAccountID, toAccountID, amount, memo);
 
   //Process the inbox, approving all pending transcations
   //processAllTransfers();
@@ -456,11 +450,132 @@ Handle<Value> TransferAssets(const Arguments& args){
 }
 
 
-Handle<Value> IssueAssets(const Arguments& args){
+
+
+
+Handle<Value> CreateNewAsset(const Arguments& args){
   HandleScope scope;
 
-  return scope.Close(Null());
+  //Make sure all the arguments have been supplied
+  if (args.Length() < 2) {
+    ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected: Nym ID, Asset Contract XML")));
+    return scope.Close(False());
+  }
+
+  if (!args[0]->IsString()) {
+    ThrowException(Exception::TypeError(String::New("First parameter (Nym ID) is not in the correct format.")));
+    return scope.Close(False());
+  }
+
+  if (!args[1]->IsString()) {
+    ThrowException(Exception::TypeError(String::New("Second parameter (Asset Contract XML) is not in the correct format.")));
+    return scope.Close(False());
+  }
+  
+  //Extract the values supplied as arguments
+  v8::String::Utf8Value nymIDUTF(args[0]->ToString());
+  std::string nymID = std::string(*nymIDUTF);
+  
+  v8::String::Utf8Value assetContractXMLUTF(args[1]->ToString());
+  std::string assetContractXML = std::string(*assetContractXMLUTF);
+
+
+  std::cout << "Create Asset parameters = " << nymID << ", " << assetContractXML << std::endl;
+  
+  //Create the new asset
+  std::string assetID = OTAPI_Wrap::CreateAssetContract(nymID, assetContractXML);
+  
+  
+  //std::string OTAPI_Wrap::GetAssetType_Contract(const std::string& ASSET_TYPE_ID)
+  //int32_t OTAPI_Wrap::AddAssetContract(const std::string& strContract)
+  //std::string OTAPI_Wrap::SignContract(const std::string& SIGNER_NYM_ID, const std::string& THE_CONTRACT)
+  //std::string OTAPI_Wrap::LoadAssetContract(const std::string& ASSET_TYPE_ID)
+  
+  return scope.Close(v8::String::New(assetID.c_str()));
 }
+
+Handle<Value> GetSignedAssetContract(const Arguments& args){
+  HandleScope scope;
+
+  //Make sure all the arguments have been supplied
+  if (args.Length() == 0) {
+    ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected: Asset ID")));
+    return scope.Close(False());
+  }
+
+  if (!args[0]->IsString()) {
+    ThrowException(Exception::TypeError(String::New("First parameter (Asset ID) is not in the correct format.")));
+    return scope.Close(False());
+  }
+  
+  //Extract the values supplied as arguments
+  v8::String::Utf8Value assetIDUTF(args[0]->ToString());
+  std::string assetID = std::string(*assetIDUTF);
+  
+  //Retrieve the signed asset contract
+  std::string signedContract = OTAPI_Wrap::GetAssetType_Contract(assetID);
+  
+  return scope.Close(v8::String::New(signedContract.c_str()));
+}
+
+Handle<Value> IssueAsset(const Arguments& args){
+  HandleScope scope;
+
+  //Make sure all the arguments have been supplied
+  if (args.Length() < 2) {
+    ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected: Nym ID, Asset ID (or the Signed Asset Contract)")));
+    return scope.Close(False());
+  }
+
+  if (!args[0]->IsString()) {
+    ThrowException(Exception::TypeError(String::New("First parameter (Nym ID) is not in the correct format.")));
+    return scope.Close(False());
+  }
+  
+  if (!args[1]->IsString()) {
+    ThrowException(Exception::TypeError(String::New("Second parameter (Asset ID (or Signed Asset Contract)) is not in the correct format.")));
+    return scope.Close(False());
+  }
+  
+  
+  //Extract the values supplied as arguments
+  v8::String::Utf8Value nymIDUTF(args[0]->ToString());
+  std::string nymID = std::string(*nymIDUTF);
+  
+  v8::String::Utf8Value assetContractUTF(args[1]->ToString());
+  std::string assetContract = std::string(*assetContractUTF);
+  if(assetContract.length() < 50){
+    //They probably gave us an Asset ID.  Retrieve the signed contract
+    assetContract = OTAPI_Wrap::GetAssetType_Contract(assetContract);
+  }
+  
+  std::string serverID = mainServerID;
+  if (args.Length() > 2) {
+    v8::String::Utf8Value serverIDUTF(args[2]->ToString());
+    serverID = std::string(*serverIDUTF);
+  }
+  
+  //std::cout << "Issue Asset parameters = " << nymID << ", " << serverID << ", " << assetContract << std::endl;
+  
+  
+  //Issue the Asset on the Server for this Nym
+  OT_ME madeEasy = OT_ME();
+  std::string serverResponse = madeEasy.issue_asset_type(serverID, nymID, assetContract);
+  //std::cout << "Server Response = " << serverResponse << std::endl;
+  
+  std::string issuerAccountID = OTAPI_Wrap::Message_GetNewIssuerAcctID(serverResponse);
+  std::cout << "Issuer Account ID = " << issuerAccountID << std::endl;
+  
+  OTAPI_Wrap::SetAccountWallet_Name(issuerAccountID, nymID, "Issuer Account");
+  
+  OTAPI_Wrap::getRequest(serverID, nymID);
+  madeEasy.accept_inbox_items(issuerAccountID, 0, "");
+    
+  return scope.Close(v8::String::New(issuerAccountID.c_str()));
+}
+
+
+
 
 
 
@@ -674,8 +789,14 @@ void init(Handle<Object> exports) {
   
   exports->Set(String::NewSymbol("transferAssets"),
       FunctionTemplate::New(TransferAssets)->GetFunction());
-  exports->Set(String::NewSymbol("issueAssets"),
-      FunctionTemplate::New(IssueAssets)->GetFunction());
+  
+  
+  exports->Set(String::NewSymbol("createNewAsset"),
+      FunctionTemplate::New(CreateNewAsset)->GetFunction());
+  exports->Set(String::NewSymbol("issueAsset"),
+      FunctionTemplate::New(IssueAsset)->GetFunction());
+  exports->Set(String::NewSymbol("getSignedAssetContract"),
+      FunctionTemplate::New(GetSignedAssetContract)->GetFunction());
   
   
   exports->SetAccessor(String::New("mainUserID"), GetUserID, SetUserID);
