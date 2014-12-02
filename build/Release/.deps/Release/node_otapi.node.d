@@ -1,1 +1,0 @@
-cmd_Release/node_otapi.node := ln -f "Release/obj.target/node_otapi.node" "Release/node_otapi.node" 2>/dev/null || (rm -rf "Release/node_otapi.node" && cp -af "Release/obj.target/node_otapi.node" "Release/node_otapi.node")
