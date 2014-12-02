@@ -311,12 +311,12 @@ $(obj).$(TOOLSET)/%.o: $(obj)/%.s FORCE_DO_CMD
 
 ifeq ($(strip $(foreach prefix,$(NO_LOAD),\
     $(findstring $(join ^,$(prefix)),\
-                 $(join ^,node_otapi.target.mk)))),)
-  include node_otapi.target.mk
+                 $(join ^,otapi.target.mk)))),)
+  include otapi.target.mk
 endif
 
 quiet_cmd_regen_makefile = ACTION Regenerating $@
-cmd_regen_makefile = cd $(srcdir); /usr/share/node-gyp/gyp/gyp -fmake --ignore-environment "--toplevel-dir=." -I/home/ozymandias/dev/node-otapi/build/config.gypi -I/usr/share/node-gyp/addon.gypi -I/usr/include/nodejs/common.gypi "--depth=." "-Goutput_dir=." "--generator-output=build" "-Dlibrary=shared_library" "-Dvisibility=default" "-Dnode_root_dir=/usr/include/nodejs" "-Dmodule_root_dir=/home/ozymandias/dev/node-otapi" binding.gyp
+cmd_regen_makefile = cd $(srcdir); /usr/share/node-gyp/gyp/gyp -fmake --ignore-environment "--toplevel-dir=." -I/home/ubuntu/dev/otapi-js/build/config.gypi -I/usr/share/node-gyp/addon.gypi -I/usr/include/nodejs/common.gypi "--depth=." "-Goutput_dir=." "--generator-output=build" "-Dlibrary=shared_library" "-Dvisibility=default" "-Dnode_root_dir=/usr/include/nodejs" "-Dmodule_root_dir=/home/ubuntu/dev/otapi-js" binding.gyp
 Makefile: $(srcdir)/../../../../usr/share/node-gyp/addon.gypi $(srcdir)/../../../../usr/include/nodejs/common.gypi $(srcdir)/build/config.gypi $(srcdir)/binding.gyp
 	$(call do_cmd,regen_makefile)
 

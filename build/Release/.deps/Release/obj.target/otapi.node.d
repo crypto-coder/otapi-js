@@ -1,0 +1,1 @@
+cmd_Release/obj.target/otapi.node := flock ./Release/linker.lock g++ -shared -pthread -rdynamic -m64  -Wl,-soname=otapi.node -o Release/obj.target/otapi.node -Wl,--start-group Release/obj.target/otapi/otapi-js.o Release/obj.target/otapi/passwordCallback.o -Wl,--end-group /usr/local/lib/libotapi.so /usr/local/lib/libot.so
