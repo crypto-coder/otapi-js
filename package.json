@@ -1,6 +1,6 @@
 {
   "name": "otapi",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Node.js Addon for connecting to the Open Transactions client API",
   "keywords": ["open transactions", "otapi", "ot", "cryptocurrency", "crypto currency", "digital currency", "digital finance", "bitcoin", "altcoin" ],
   "license": "GPL-3.0+",
