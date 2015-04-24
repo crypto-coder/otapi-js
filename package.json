@@ -2,10 +2,27 @@
   "name": "otapi",
   "version": "0.0.1",
   "description": "Node.js Addon for connecting to the Open Transactions client API",
-  "keywords": ["open transactions", "otapi", "ot", "cryptocurrency", "crypto currency", "digital currency", "digital finance", "bitcoin", "altcoin" ],
+  "keywords": [
+    "open transactions",
+    "otapi",
+    "ot",
+    "cryptocurrency",
+    "crypto currency",
+    "digital currency",
+    "digital finance",
+    "bitcoin",
+    "altcoin"
+  ],
   "license": "GPL-3.0+",
   "main": "index.js",
   "private": false,
   "gypfile": true,
-  "repository": { "type":"git","url":"https://github.com/PUREMoneySystems/otapi-js.git"}
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PUREMoneySystems/otapi-js.git"
+  },
+  "dependencies": {
+    "xmldom": "~0.1.19",
+    "fs": "0.0.2"
+  }
 }

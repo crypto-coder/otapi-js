@@ -1,0 +1,129 @@
+-----BEGIN SIGNED CONTRACT-----
+Hash: SAMY
+
+<?xml version="1.0"?>
+<digitalAssetContract version="2.1">
+
+<entity shortname="PUREMoneySystems.com"
+ longname="PUREMoneySystems.com"
+ email="puremoneysystems@gmail.com"/>
+
+<issue company="PUREMoneySystems.com"
+ email="puremoneysystems@gmail.com"
+ contractUrl="https://localhost/contracts/"
+ type="currency"/>
+
+<currency name="time Decay Currency - TEST" tla="TDC" symbol="." type="decimal" factor="1" decimal_power="0" fraction="mTDC" />
+
+<scriptableContract
+ numBylaws="1" >
+
+<bylaw
+ name="Time_Decay_Bylaw"
+ numVariables="4"
+ numClauses="1"
+ numHooks="0"
+ numCallbacks="0"
+ language="chai" >
+
+<variable
+ name="Computed_Balance"
+ value="none"
+ type="string"
+ access="persistent" />
+
+<variable
+ name="Current_Balance"
+ value="none"
+ type="string"
+ access="persistent" />
+
+<variable
+ name="End_Date"
+ value="1432100006"
+ type="integer"
+ access="constant" />
+
+<variable
+ name="Start_Date"
+ value="1429508006"
+ type="integer"
+ access="constant" />
+
+<clause
+ name="Get_Computed_Balance">
+eNrj4i8oyswr0VAqSS0uUdK05gIALY4E4Q==
+</clause>
+
+</bylaw>
+
+</scriptableContract>
+
+<!-- CONDITIONS -->
+
+<condition name="audit">
+        No audits performed on this currency's use or distribution
+    </condition>
+
+<condition name="backing">
+        No implicit or explicit backing for this currency
+    </condition>
+
+<condition name="buyback">
+        PUREMoneySystems provides no backing or buyback option for this currency. 
+    </condition>
+
+<condition name="liability">
+        PUREMoneySystems will provide no liability for the use, distribution, or transmission of this currency.  This is a test and is not intended to represent or perform like a real-world currency
+    </condition>
+
+<condition name="mint">
+        PUREMoneySystems serves as the mint for this currency, when directed to issue or withdraw some currency to an account by the Issuer
+    </condition>
+
+<condition name="privacy">
+        PUREMoneySystems uses Open Transactions to manage all transactions with this currency.  Open Transactions does not record transactions, but the LastFlag application does.  Security at multiple layers is considered, but this should not be relied on.  As a test, assume all data is public, all the time.
+    </condition>
+
+<condition name="purchase">
+        This currency is given to others as gifts.  No initial purchase is required to recieve this currency.
+    </condition>
+
+<condition name="rate">
+        Issuance and redemption of this currency will be performed at no charge
+    </condition>
+
+<condition name="redemption">
+        PUREMoneySystems.com, nor anyone else using the LastFlag system, will redeem this currency for another asset.  This is a test only.
+    </condition>
+
+<!-- KEYS -->
+
+<key name="contract">
+- -----BEGIN PUBLIC KEY-----
+CpACLS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlHZk1BMEdDU3FHU0liM0RR
+RUJBUVVBQTRHTkFEQ0JpUUtCZ1FEY0FiQTZIZ1lBSWJtYTZaK2Q1RUVHYyt0aQpW
+Rmk5NkRHV2xKWTd6bUtIOXpxQStVTlBaUmg2aGxpRTNQU0FXL29iZ1BRT3dsNDVj
+Z0JCK3hDM3o3OWNpaWRxCkdzMUxMYUtCdG1mNWVuSE1hVGxaZy9vUFdjMEN1bkpH
+UXBFeWZyVW1jY0ZqTlBKdHBXTVlvLzFHRk1VQlR2RjkKdllwM1JnZ2I4NFUweCs0
+S2p3SURBUUFCCi0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQo=
+- -----END PUBLIC KEY-----
+</key>
+
+<!-- NYMS -->
+
+<signer hasCredentials="false"
+ nymID="ZeuZ7SyrgWP7zUYJ4CyWt9ZT9J4uBELxQe0M0DoQLDt"
+ altLocation="">
+
+</signer>
+
+</digitalAssetContract>
+-----BEGIN CONTRACT SIGNATURE-----
+Version: Open Transactions 0.93
+Comment: http://github.com/FellowTraveler/Open-Transactions/wiki
+
+CoABOzDMgsoh4qr8MfXAZjKNE1EvlzVx92kBgRbuTK48b0jLWHL1pa6Uxhwp2j/q
+Q+TFE1xkSUeV43IOQRfzd3NNqgplGX6EO8gjBbuqkaHvxi7dvU2FUo1KMR9x7HOE
+n0bWskb1b9dbnbKxX1oG+KHsXspFIrqVKXTHztl5q/RJdag=
+-----END CONTRACT SIGNATURE-----

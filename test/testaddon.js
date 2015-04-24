@@ -54,7 +54,7 @@ function removeAccountAndUser(){
   console.log(((nymDeleteSuccess)?'######## Successfully removed the nym':'######## Failed to remove the nym'));
 }
 
-function createAndIssueNewAsset(newAssetName, tla, fraction){
+function signNewAssetContract(newAssetName, tla, fraction){
   console.log('######## Trying to load an XML contract template');
   var xmldom = require('xmldom');
   var fs = require('fs');
@@ -62,10 +62,9 @@ function createAndIssueNewAsset(newAssetName, tla, fraction){
   var DOMParser = xmldom.DOMParser;
   var DOMSerializer = xmldom.XMLSerializer;
   
-  var fileData = fs.readFileSync('template.xml', 'ascii');
+  var fileData = fs.readFileSync('timeDecayCurrency-Sudden.xml', 'ascii');
   var doc = new DOMParser().parseFromString(fileData.substring(0, fileData.length),'text/xml');
-  
-  
+    
   console.log('######## Changing the name, tla, and fraction values in the contract = ' + newAssetName + ', ' + tla + ', ' + fraction);
   var currencyNode = doc.documentElement.getElementsByTagName('currency')[0];
   currencyNode.setAttribute('name', newAssetName);
@@ -73,26 +72,31 @@ function createAndIssueNewAsset(newAssetName, tla, fraction){
   currencyNode.setAttribute('fraction', fraction);
   var assetContract = new DOMSerializer().serializeToString(doc);
     
+  console.log('######## Trying to sign the new asset from the XML');
+  var assetID = otapi.signNewAssetContract(otapi.mainNymID, assetContract);
+  console.log('######## SIGNED CONTRACT : ' + assetID);
+  
+}
+
+function issueSignedAssetContract(){
+  console.log('######## Trying to load an XML contract template');
+  var fs = require('fs');  
+  var assetContract = fs.readFileSync('timeDecayCurrency-Sudden.xml', 'ascii');
+    
   console.log('######## Trying to create the asset from the XML');
-  var assetID = otapi.createNewAsset(otapi.mainUserID, assetContract);
+  var assetID = otapi.createNewAsset(otapi.mainNymID, assetContract);
   console.log('######## ASSET ID : ' + assetID);
   
   console.log('######## Retrieving the signed contract');
-  var signedContract = otapi.getSignedAssetContract(assetID);
-  console.log(signedContract);
+  //var signedContract = otapi.getSignedAssetContract(assetID);
+  //console.log(signedContract);
   
   console.log('######## Issuing the signed contract');
-  var issuerAccountID = otapi.issueAsset(otapi.mainUserID, assetID);
-  console.log(issuerAccountID);
-  
-  
-  
-  doc = null;
+  //var issuerAccountID = otapi.issueAsset(otapi.mainNymID, assetID);
+  //console.log(issuerAccountID);
+    
   fileData = null;
   fs = null;
-  xmldom = null;
-  DOMParser = null;
-  DOMSerializer = null;
 }
 
 
@@ -111,10 +115,15 @@ function removeUserAndShutdown(){
 var allAssetID = [];
 var newNymID, newAccountID;
 var username = 'testuser10';
-otapi.mainUserID = 'ya1AQQmaWnuntmDnoOjCmKpPXhmGuVAfkPwrgSc3nlf';
+otapi.mainNymID = 'ya1AQQmaWnuntmDnoOjCmKpPXhmGuVAfkPwrgSc3nlf';
 otapi.mainServerID = 'y0ca6JVtYSZuj1etoABAsaNJsU2Kb35AjeQZyZ0YCCF';
 
 startup();
 
+//signNewAssetContract('time Decay Currency - TEST', 'TDC', 'mTDC');
+issueSignedAssetContract();
+
+
+//listEverything();
 setTimeout(shutdown, 5000);
 
