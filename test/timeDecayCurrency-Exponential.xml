@@ -37,37 +37,53 @@
 
 <clause
  name="Get_Computed_Balance">
-	  
   try{	    
-    var currentBalance = Current_Balance;
-  
+    var currentBalance = (Current_Balance.to_string()).to_double();
+    print("currentBalance = ${currentBalance}");    
+    
     //Determine the total time this currency is valid for
-    var totalTimeSpanInSeconds = End_Date - Start_Date;
+    var totalTimeSpanInSeconds = ((End_Date - Start_Date).to_string()).to_double();
+    print("totalTimeSpanInSeconds = ${totalTimeSpanInSeconds}");
     if(totalTimeSpanInSeconds &lt; 0){
-      print("Error during Get_Computed_Balance. End_Date and Start_Date must be specified in seconds.  The specified End_Date is before Start_Date.");
+      print("Error during Get_Computed_Balance. End_Date and Start_Date must be specified in seconds.  The specified End_Date is before Start_Date.");    
       return "0";
     }
     
     //Determine the remaining time this currency is valid for
-    var remainingTimeSpanInSeconds = End_Date - (get_time()).to_int();
+    var remainingTimeSpanInSeconds = ((End_Date - (get_time()).to_int()).to_string()).to_double();
+    print("remainingTimeSpanInSeconds = ${remainingTimeSpanInSeconds}");
     if(remainingTimeSpanInSeconds &lt;= 0){	  
-      print("This currency is not valid. The End_Date is in the past.");  
+      print("This currency is not valid. The End_Date is in the past.");     
       return "0";
     }
     
     //Determine the elapsed time this currency has been valid for
     var elapsedTimeSpanInSeconds = totalTimeSpanInSeconds - remainingTimeSpanInSeconds;
+    print("elapsedTimeSpanInSeconds = ${elapsedTimeSpanInSeconds}");
     if(elapsedTimeSpanInSeconds &lt;= 0){	 
-      print("This currency is not valid yet. The Start_Date is in the future."); 
+      print("This currency is not valid yet. The Start_Date is in the future.");     
       return "0";
-    }	    
+    }
+	    
+    //EQUATION	Computed_Balance	= Current_Balance	- exp(elapsedTime	/ totalTime)	* ln(Current_Balance)
+    //Example:	98.9820743702   	= 100 			- exp(10000	 	/ 2592000) 	* ln(100) 
+	  
+    //Compute the remaining balance
+    var naturalLogOfCurrentBalance = (ln(currentBalance.to_string())).to_double();
+    print("naturalLogOfCurrentBalance = ${naturalLogOfCurrentBalance}");    
+    var elapseTimeRatio = (elapsedTimeSpanInSeconds / totalTimeSpanInSeconds);
+    print("elapseTimeRatio = ${elapseTimeRatio}");    
+    var exponentialForElapsedTimeRatio = (exp( elapseTimeRatio.to_string() )).to_double();
+    print("exponentialForElapsedTimeRatio = ${exponentialForElapsedTimeRatio}");
+    var computedBalance = currentBalance - (exponentialForElapsedTimeRatio * naturalLogOfCurrentBalance);    
+    print("computedBalance = ${computedBalance}");
+    return computedBalance.to_string();
     
-    return currentBalance;
   }catch(e){
-    print("Error during Get_Computed_Balance clause: ${e}");
+    print("Error during Get_Computed_Balance clause: ${e}");    
     return "0";
   }
-	  
+	
 </clause>
 
 </bylaw>

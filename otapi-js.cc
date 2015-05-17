@@ -3,6 +3,7 @@
 #include <iostream>
 #include <node.h>
 #include <v8.h>
+#include <inttypes.h>
 
 #include <OT_ME.hpp>
 #include <OTAPI.hpp>
@@ -621,10 +622,6 @@ Handle<Value> CreateAccount(const Arguments& args){
 Handle<Value> GetAccountBalance(const Arguments& args){
   HandleScope scope;
 
-  OTIdentifier nym_id("IirfVWfx09PmHAznlJUR93jvFZmSZ6Wh5fYHkNERxKj");
-  OTIdentifier server_id("xyzl2I9VFVJP7ujXqUfdyf4Eoj6tQl2sOKnXcs741TH");
-  OTIdentifier account_id("k5YaRDf1sJOpQzxmE2nTQJNczmi7GWtxwVmoBeKtlYO");
-
   if (args.Length() < 1) {
     ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected an Account ID")));
     return scope.Close(Number::New(-1));
@@ -641,6 +638,60 @@ Handle<Value> GetAccountBalance(const Arguments& args){
   int64_t balance = OTAPI_Wrap::GetAccountWallet_Balance(accountID);
   return scope.Close(Number::New(balance));
 }
+
+Handle<Value> GetAccountComputedBalance(const Arguments& args){
+  HandleScope scope;
+
+  if (args.Length() < 1) {
+    ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected an Account ID")));
+    return scope.Close(Number::New(-1));
+  }
+
+  if (!args[0]->IsString()) {
+    ThrowException(Exception::TypeError(String::New("Expected an Account ID")));
+    return scope.Close(Number::New(-1));
+  }
+
+  v8::String::Utf8Value utf8String(args[0]->ToString());
+  std::string accountID = std::string(*utf8String);
+  const OTIdentifier accountOTID(accountID);
+  const OTIdentifier serverOTID(mainServerID);
+
+  const std::string getComputedBalanceClauseName = std::string("Get_Computed_Balance");
+  
+  //Get Current Balance
+  int32_t currentBalance = OTAPI_Wrap::GetAccountWallet_Balance(accountID);
+  
+  //Load Account and AssetContract
+  std::cout << "Getting the Account" << std::endl;
+  OTAccount * requestedAccount = OTAPI_Wrap::OTAPI()->GetAccount(accountOTID, __FUNCTION__);
+  if (NULL == requestedAccount) return scope.Close(Number::New(currentBalance));
+  std::cout << "Getting the AssetContract ID for this Account" << std::endl;
+  OTIdentifier assetOTID(requestedAccount->GetAssetTypeID());  
+  std::cout << "Getting the AssetContract" << std::endl;
+  OTAssetContract * assetContract = OTAPI_Wrap::OTAPI()->GetAssetType(assetOTID, __FUNCTION__);
+  if (NULL == assetContract) return scope.Close(Number::New(currentBalance));
+  
+  //Get the Computed Balance clause and execute it  
+  std::cout << "Getting the 'Get_Computed_Balance' Clause for this AssetContract" << std::endl;
+  OTClause * pClause = assetContract->GetClause(getComputedBalanceClauseName);
+  if (NULL != pClause) {    
+    std::cout << "Adding the Current_Balance and returnBalance variables" << std::endl;
+    mapOfVariables parameters;
+    OTVariable currentBalanceVariable("Current_Balance", currentBalance);
+    parameters.insert(std::pair<std::string, OTVariable *>("Current_Balance", &currentBalanceVariable));
+    
+    std::string returnBalance = "";
+    OTVariable returnBalanceVariable("returnBalance", returnBalance);
+    std::cout << "Executing the 'Get_Computed_Balance' Clause" << std::endl;
+    assetContract->ExecuteClause(*pClause, parameters, returnBalanceVariable); 
+    
+    sscanf(returnBalanceVariable.CopyValueString().c_str(), "%" SCNd32, &currentBalance);
+  }
+  
+  return scope.Close(Number::New(currentBalance));
+}
+
 
 Handle<Value> DeleteAccount(const Arguments& args){
   HandleScope scope;
@@ -868,7 +919,7 @@ Handle<Value> TransferAssets(const Arguments& args){
 
 
 
-Handle<Value> SignNewAssetContract(const Arguments& args){
+Handle<Value> SignAssetContract(const Arguments& args){
   HandleScope scope;
 
   //Make sure all the arguments have been supplied
@@ -891,76 +942,43 @@ Handle<Value> SignNewAssetContract(const Arguments& args){
   v8::String::Utf8Value nymIDUTF(args[0]->ToString());
   std::string nymID = std::string(*nymIDUTF);
   const OTIdentifier signingID(nymID);
-  OTPseudonym* signingNym = OTAPI_Wrap::OTAPI()->GetOrLoadPublicNym(signingID, __FUNCTION__); 
-  OTPasswordData thePWData("test");
-  signingNym->LoadCredentials(true, &thePWData);
-  signingNym->VerifyPseudonym();
-  
+  OTPseudonym * pNym = OTAPI_Wrap::OTAPI()->GetNym(signingID, __FUNCTION__);
+  if (NULL == pNym) return scope.Close(False());
+    
   v8::String::Utf8Value unsignedAssetContractXMLUTF(args[1]->ToString());
   std::string unsignedAssetContractXML = std::string(*unsignedAssetContractXMLUTF);
-  OTString unsignedXML(unsignedAssetContractXML);
+  std::string unsignedAssetContractXMLTrim = OTString::trim(unsignedAssetContractXML);
+  OTString unsignedXML(unsignedAssetContractXMLTrim.c_str());
   
-  //Get the create the asset contract from XML, add the nym and public key, and sign with the public key
-  OTString strPubkey;
-  bool pubKeyLoaded = signingNym->GetPublicSignKey().GetPublicKey(strPubkey);
-  OTAssetContract* newAssetContract = new OTAssetContract(unsignedXML);  
-    
-  const bool bHasCredentials = (signingNym->GetMasterCredentialCount() > 0);
-  std::cout << "Has Credentials = " << bHasCredentials << std::endl;
-  if (!bHasCredentials){
-      if (pubKeyLoaded && strPubkey.Exists()) {  //bEscaped=true by default.	  
-	  newAssetContract->InsertNym("contract", strPubkey);
-      }
-  } else {// signingNym has Credentials, so we'll add him to the contract.
-      OTString     strCredList, strSignerNymID;
-      mapOfStrings mapCredFiles;
-      signingNym->GetIdentifier(strSignerNymID);
-      signingNym->GetPublicCredentials(strCredList, &mapCredFiles);
-      
-      OTPseudonym * pNym = new OTPseudonym;
-      OTCleanup<OTPseudonym> theNymAngel(pNym); // pNym will be automatically cleaned up.
-      
-      pNym->SetIdentifier(strSignerNymID);
-      pNym->SetNymIDSource(signingNym->GetNymIDSource());
-      pNym->SetAltLocation(signingNym->GetAltLocation());
-      
-      if (false == pNym->LoadFromString(strCredList, &mapCredFiles)) {
-	  //OTLog::vError("%s: Failure loading nym %s from credential string.\n", __FUNCTION__, strSignerNymID.Get());
-      } else if (false == pNym->VerifyPseudonym()) {
-	  // Now that the Nym has been loaded up from the two strings,
-	  // including the list of credential IDs, and the map containing the
-	  // credentials themselves, let's try to Verify the pseudonym. If we
-	  // verify, then we're safe to add the Nym to the contract.
-	  //
-	  //OTLog::vError("%s: Loaded nym %s from credentials, but then it failed verifying.\n", __FUNCTION__, strSignerNymID.Get());
-      } else { 
-	  // Okay, we loaded the Nym up from the credentials, AND
-	  // verified the Nym (including the credentials.)
-	  // So let's add it to the contract...
-	  theNymAngel.SetCleanupTargetPointer(NULL); // so pNym won't be cleaned up.
-	  if (pubKeyLoaded && strPubkey.Exists()) {  //bEscaped=true by default.	  
-	      newAssetContract->InsertNym("signer", strPubkey);  // Add pNym to the contract's internal list of nyms.
-	  }  
-      }
+  if (unsignedXML.GetLength() < 2) {
+    ThrowException(Exception::TypeError(String::New("Second parameter (Unsigned Asset Contract XML) is not in the correct format.: Empty XML contents passed in")));
+    return scope.Close(False());
   }
     
-  //Generate the contract contents, save it out, and sign it
-  OTString assembledContract, signedContract, contractType("CONTRACT");
-  newAssetContract->CreateContents();
-  newAssetContract->SignContract(*signingNym);
-  //newAssetContract->RewriteContract(signedContract);
-  newAssetContract->SaveContents(assembledContract);  
-  newAssetContract->SignFlatText(assembledContract, contractType, *signingNym, signedContract);
+  OTAssetContract * pContract = new OTAssetContract;
+  OTCleanup<OTAssetContract> theAngel(*pContract);
+  pContract->CreateContract(unsignedXML, *pNym); // <==========  **** CREATE CONTRACT!! ****
   
-  //Sign the contract
-  //newAssetContract->SignFlatText(signedContract, 
+  // -------------------------------------------
+  // But does it meet our requirements?
+  const OTPseudonym * pContractKeyNym = pContract->GetContractPublicNym();
+  if (NULL == pContractKeyNym){
+    ThrowException(Exception::TypeError(String::New("Missing 'key' tag with name=\"contract\" and text value containing the public cert or public key of the signer Nym. (Please add it first. Failure.)")));
+    return scope.Close(False());
+  } else if (false == pNym->CompareID(*pContractKeyNym)){
+    ThrowException(Exception::TypeError(String::New("Found 'key' tag with name=\"contract\" and text value, but it apparently does NOT contain the public cert or public key of the signer Nym. Please fix that first; see the sample data. (Failure.)")));
+    return scope.Close(False());
+  }
   
-  std::string assetID = signedContract.Get();
-  
-  return scope.Close(v8::String::New(assetID.c_str()));
+  const OTString signedContract(*pContract);
+  std::string outputSignedXML = signedContract.Get();  
+  return scope.Close(v8::String::New(outputSignedXML.c_str()));
 }
 
-Handle<Value> CreateNewAsset(const Arguments& args){
+
+
+
+Handle<Value> SignAssetContractAndAddToWallet(const Arguments& args){
   HandleScope scope;
 
   //Make sure all the arguments have been supplied
@@ -986,17 +1004,10 @@ Handle<Value> CreateNewAsset(const Arguments& args){
   v8::String::Utf8Value assetContractXMLUTF(args[1]->ToString());
   std::string assetContractXML = std::string(*assetContractXMLUTF);
 
-
   std::cout << "Create Asset parameters = " << nymID << ", " << assetContractXML << std::endl;
   
   //Create the new asset
   std::string assetID = OTAPI_Wrap::CreateAssetContract(nymID, assetContractXML);
-  
-  
-  //std::string OTAPI_Wrap::GetAssetType_Contract(const std::string& ASSET_TYPE_ID)
-  //int32_t OTAPI_Wrap::AddAssetContract(const std::string& strContract)
-  //std::string OTAPI_Wrap::SignContract(const std::string& SIGNER_NYM_ID, const std::string& THE_CONTRACT)
-  //std::string OTAPI_Wrap::LoadAssetContract(const std::string& ASSET_TYPE_ID)
   
   return scope.Close(v8::String::New(assetID.c_str()));
 }
@@ -1023,6 +1034,30 @@ Handle<Value> GetSignedAssetContract(const Arguments& args){
   std::string signedContract = OTAPI_Wrap::GetAssetType_Contract(assetID);
   
   return scope.Close(v8::String::New(signedContract.c_str()));
+}
+
+Handle<Value> GetAccountAssetContractID(const Arguments& args){
+  HandleScope scope;
+
+  //Make sure all the arguments have been supplied
+  if (args.Length() == 0) {
+    ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected: Account ID")));
+    return scope.Close(False());
+  }
+
+  if (!args[0]->IsString()) {
+    ThrowException(Exception::TypeError(String::New("First parameter (Account ID) is not in the correct format.")));
+    return scope.Close(False());
+  }
+  
+  //Extract the values supplied as arguments
+  v8::String::Utf8Value accountIDUTF(args[0]->ToString());
+  std::string accountID = std::string(*accountIDUTF);
+  
+  //Retrieve the signed asset contract id
+  std::string assetID = OTAPI_Wrap::GetAccountWallet_AssetTypeID(accountID);
+  
+  return scope.Close(v8::String::New(assetID.c_str()));
 }
 
 Handle<Value> IssueAsset(const Arguments& args){
@@ -1431,6 +1466,29 @@ Handle<Value> CreateSmartContract(const Arguments& args){
 }
 
 
+Handle<Value> EncodeText(const Arguments& args){
+  HandleScope scope;
+
+  //Make sure all the arguments have been supplied
+  if (args.Length() == 0) {
+    ThrowException(Exception::TypeError(String::New("Wrong number of arguments. Expected: TextToEncode")));
+    return scope.Close(False());
+  }
+
+  if (!args[0]->IsString()) {
+    ThrowException(Exception::TypeError(String::New("First parameter (TextToEncode) is not in the correct format.")));
+    return scope.Close(False());
+  }
+  
+  //Extract the values supplied as arguments
+  v8::String::Utf8Value textToEncodeUTF(args[0]->ToString());
+  std::string textToEncode = std::string(*textToEncodeUTF);
+  
+  //Encode the Text
+  std::string encodedText = OTAPI_Wrap::Encode(textToEncode, true);
+  
+  return scope.Close(v8::String::New(encodedText.c_str()));
+}
 
 
 
@@ -1612,6 +1670,8 @@ void init(Handle<Object> exports) {
       FunctionTemplate::New(StartOTAPI)->GetFunction());
   exports->Set(String::NewSymbol("stopOTAPI"),
       FunctionTemplate::New(StopOTAPI)->GetFunction());
+  exports->Set(String::NewSymbol("encodeText"),
+      FunctionTemplate::New(EncodeText)->GetFunction());
   
   
   exports->Set(String::NewSymbol("getAccountIDList"),
@@ -1638,7 +1698,9 @@ void init(Handle<Object> exports) {
   exports->Set(String::NewSymbol("deleteAccount"),
       FunctionTemplate::New(DeleteAccount)->GetFunction());   
   exports->Set(String::NewSymbol("getAccountBalance"),
-      FunctionTemplate::New(GetAccountBalance)->GetFunction());
+      FunctionTemplate::New(GetAccountBalance)->GetFunction()); 
+  exports->Set(String::NewSymbol("getAccountComputedBalance"),
+      FunctionTemplate::New(GetAccountComputedBalance)->GetFunction());
   
   
   
@@ -1648,14 +1710,16 @@ void init(Handle<Object> exports) {
       FunctionTemplate::New(TransferAssets)->GetFunction());
   
   
-  exports->Set(String::NewSymbol("signNewAssetContract"),
-      FunctionTemplate::New(SignNewAssetContract)->GetFunction());
-  exports->Set(String::NewSymbol("createNewAsset"),
-      FunctionTemplate::New(CreateNewAsset)->GetFunction());
-  exports->Set(String::NewSymbol("issueAsset"),
-      FunctionTemplate::New(IssueAsset)->GetFunction());
+  exports->Set(String::NewSymbol("signAssetContract"),
+      FunctionTemplate::New(SignAssetContract)->GetFunction());
+  exports->Set(String::NewSymbol("signAssetContractAndAddToWallet"),
+      FunctionTemplate::New(SignAssetContractAndAddToWallet)->GetFunction());
   exports->Set(String::NewSymbol("getSignedAssetContract"),
       FunctionTemplate::New(GetSignedAssetContract)->GetFunction());
+  exports->Set(String::NewSymbol("getAccountAssetContractID"),
+      FunctionTemplate::New(GetAccountAssetContractID)->GetFunction());  
+  exports->Set(String::NewSymbol("issueAsset"),
+      FunctionTemplate::New(IssueAsset)->GetFunction());
   
   
   
