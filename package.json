@@ -23,6 +23,16 @@
   },
   "dependencies": {
     "xmldom": "~0.1.19",
-    "fs": "0.0.2"
+    "fs": "0.0.2",
+    "cmake-js": "~1.0.2",
+    "nan": "~2.0.9"
+  },
+  "scripts": {
+    "install": "cmake-js rebuild"
+  },
+  "cmake-js": {
+    "runtime": "node",
+    "runtimeVersion": "0.10.25",
+    "arch": "ia32"
   }
 }

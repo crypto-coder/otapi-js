@@ -1,7 +1,6 @@
 #ifndef OTAPIJS_H
 #define OTAPIJS_H
 
-
 #include <v8.h>
 #include <node.h>
 #include <node_object_wrap.h>
